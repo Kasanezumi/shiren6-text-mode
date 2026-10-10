@@ -1,0 +1,29 @@
+{
+  "icons": {
+    "E2B1": "",
+    "E2AB": "[祝] ",
+    "E2AF": "[未識別] ",
+    "E2AC": "[呪] ",
+    "E2AE": "",
+    "E237": "[ ] ",
+    "E0E6": "[View] ",
+    "E0A7": "[LT] ",
+    "E0E3": "[RT] ",
+    "E2A5": "盾 ",
+    "E008": "腕 ",
+    "E2C1": "剣 ",
+    "E11F": "草 ",
+    "E11E": "金 ",
+    "E235": "巻 ",
+    "E2BE": "杖 ",
+    "E118": "飯 ",
+    "E0ED": "[▶] ",
+    "E229": "新",
+    "E117": "[分類] "
+  },
+  "cursorPattern": "cursor|focus|selectmark|selectframe|^TriangleImage ui_eventwindow_triangle$",
+  "sealLabels": {
+    "icon_seal_shield_bousui": "鱗",
+    "icon_seal_shield_nagemonoyoke": "投"
+  }
+}
