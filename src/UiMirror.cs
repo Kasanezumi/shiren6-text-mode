@@ -28,6 +28,7 @@ internal static class UiMirror
     private static List<UiImage> visibleImages=new();
     private static List<UiLine> bodyLines=new();
     private static bool menuVisible;
+    internal static bool OverviewVisible { get; private set; }
     private static readonly Dictionary<int,bool> hierarchyCache=new();
     private static readonly Dictionary<int,string> pathCache=new();
     private static Regex cursorRegex=new("cursor|focus|selectmark|selectframe",RegexOptions.IgnoreCase,TimeSpan.FromMilliseconds(30));
@@ -112,6 +113,7 @@ internal static class UiMirror
             }
             Performance.Record("uiLegacyRead",step);step=Performance.Mark();
             var imageList=new List<UiImage>();
+            bool overview=false;
             var equippedRows=new HashSet<string>(StringComparer.Ordinal);
             foreach(var source in images)
             {
@@ -121,13 +123,15 @@ internal static class UiMirror
                 string imageName=source.name,spriteName=source.sprite==null?"":source.sprite.name;
                 bool cursor=cursorRegex.IsMatch(imageName+" "+spriteName);
                 bool equipped=EquipmentLabels.IsMarker(imageName,spriteName);
-                if(!cursor&&!equipped)continue;
+                bool mapLeader=imageName=="MapIconLeader(Clone)";
+                if(!cursor&&!equipped&&!mapLeader)continue;
                 if(!Visible(source)||source.canvas==null||!Bounds(source.rectTransform,source.canvas,out var box))continue;
                 string path=Path(source.transform);
+                if(mapLeader&&path.Contains("/Ui_DungeonMapRootFocusModes["))overview=true;
                 if(cursor)imageList.Add(new(imageName,spriteName,path,box.X,box.Y,box.W,box.H));
                 if(equipped){string? row=EquipmentLabels.Row(path);if(row!=null)equippedRows.Add(row);}
             }
-            visibleImages=imageList;
+            visibleImages=imageList;OverviewVisible=overview;
             Performance.Record("uiImageRead",step);
             for(int i=0;i<next.Count;i++)
             {
@@ -150,7 +154,7 @@ internal static class UiMirror
         }
         catch(Exception ex)
         {
-            lines=new();panels=new();bodyLines=new();visibleImages=new();menuVisible=false;
+            lines=new();panels=new();bodyLines=new();visibleImages=new();menuVisible=false;OverviewVisible=false;
             if(lastError!=ex.Message){lastError=ex.Message;Plugin.Report("UI mirror read failed: "+ex);}
         }
         finally{Performance.Record("uiUpdate",updateStart);}
@@ -505,6 +509,7 @@ internal static class UiMirror
             {
                 if(source==null||!source.gameObject.activeInHierarchy)continue;
                 string path=Path(source.transform);
+
                 // Include help and operation hints too: their sprite characters
                 // previously fell outside the item/message-only diagnostics.
                 if(!VisibleText(source)&&!path.Contains("/ItemSelect[")&&!path.Contains("Message")&&!path.Contains("Log"))continue;

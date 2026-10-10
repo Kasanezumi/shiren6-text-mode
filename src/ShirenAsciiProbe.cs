@@ -14,7 +14,7 @@ using HarmonyLib;
 
 namespace ShirenAsciiProbe;
 
-[BepInPlugin(Id, "Shiren ASCII Preview", "0.5.15")]
+[BepInPlugin(Id, "Shiren ASCII Preview", "0.5.16")]
 public sealed class Plugin : BasePlugin
 {
     public const string Id = "local.shiren6.ascii.probe";

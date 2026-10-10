@@ -29,10 +29,29 @@ public static class AsciiModel
         if (state.Width < 1 || state.Height < 1 || state.Tiles.Length != state.Width * state.Height)
             throw new ArgumentException("Invalid map dimensions");
         if (columns < 3 || columns > 101 || rows < 3 || rows > 101) throw new ArgumentException("Invalid viewport");
+        return BuildRegion(state,state.PlayerX-columns/2,state.PlayerY-rows/2,columns,rows);
+    }
+    // Crop to discovered terrain, never to undiscovered entities. The player
+    // can be anywhere in this rectangle, unlike the normal centered viewport.
+    public static MapFrame BuildOverview(MapState state)
+    {
+        if(state.Width<1||state.Height<1||state.Width>128||state.Height>128||state.Tiles.Length!=state.Width*state.Height)
+            throw new ArgumentException("Invalid map dimensions");
+        int left=Math.Clamp(state.PlayerX,0,state.Width-1),right=left;
+        int top=Math.Clamp(state.PlayerY,0,state.Height-1),bottom=top;
+        for(int y=0;y<state.Height;y++)for(int x=0;x<state.Width;x++)
+        {
+            if((state.Tiles[y*state.Width+x].Flags&(Revealed|Explored))==0)continue;
+            left=Math.Min(left,x);right=Math.Max(right,x);top=Math.Min(top,y);bottom=Math.Max(bottom,y);
+        }
+        return BuildRegion(state,left,top,right-left+1,bottom-top+1);
+    }
+    private static MapFrame BuildRegion(MapState state,int left,int top,int columns,int rows)
+    {
         var cells = new Glyph[columns * rows];
         int room=state.PlayerX>=0&&state.PlayerY>=0&&state.PlayerX<state.Width&&state.PlayerY<state.Height
             ?state.Tiles[state.PlayerY*state.Width+state.PlayerX].RoomId:0;
-        int left = state.PlayerX - columns / 2, top = state.PlayerY - rows / 2;
+
         for (int sy=0; sy<rows; sy++) for(int sx=0; sx<columns; sx++)
         {
             int x=left+sx, y=top+sy, index=sy*columns+sx;
@@ -65,7 +84,9 @@ public static class AsciiModel
                 cells[sy*columns+sx]=new Glyph(c,(byte)(player?3:monster?6:5));
             }
         }
-        cells[(rows/2)*columns+columns/2]=new Glyph('@',3);
+        int playerColumn=state.PlayerX-left,playerRow=state.PlayerY-top;
+        if(playerColumn>=0&&playerRow>=0&&playerColumn<columns&&playerRow<rows)
+            cells[playerRow*columns+playerColumn]=new Glyph('@',3);
         return new MapFrame(columns,rows,cells,state.PlayerX,state.PlayerY,state.FacingX,state.FacingY);
     }
     public static bool CanShowEntity(MapTile tile,bool isItem,uint itemFlags)

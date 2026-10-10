@@ -13,6 +13,7 @@ public sealed class AsciiView : MonoBehaviour
     private bool enabledView=true;
     private bool pressed, failed, reportedFrame;
     private bool waitingForFloor;
+    private bool overviewFrame;
     private IntPtr activeDungeon;
     private long refreshed;
     private MapFrame? frame;
@@ -49,15 +50,18 @@ public sealed class AsciiView : MonoBehaviour
             Performance.Frame(enabledView&&inDungeon);
             if(!enabledView||!inDungeon){frame=null;return;}
             UiMirror.Update();
-            // Menus may pause the dungeon camera; keep the last map while UI updates.
-            if(!cameraActive&&frame!=null)return;
-            if(Environment.TickCount64-refreshed<100)return;
+            bool overview=UiMirror.OverviewVisible;
+            bool mapModeChanged=overview!=overviewFrame;
+            // A map-mode change must rebuild even when the native camera is paused.
+            if(!cameraActive&&frame!=null&&!mapModeChanged)return;
+            if(!mapModeChanged&&Environment.TickCount64-refreshed<(overview?500:100))return;
             refreshed=Environment.TickCount64;
             long mapStart=Performance.Mark();
             try
             {
-                var state=LiveMap.Read(dungeon);
-                frame=state==null?null:AsciiModel.Build(state);
+                var state=LiveMap.Read(dungeon,overview:overview);
+                frame=state==null?null:overview?AsciiModel.BuildOverview(state):AsciiModel.Build(state);
+                overviewFrame=overview;
                 if(state==null&&!waitingForFloor){waitingForFloor=true;Plugin.Report("ASCII waiting for floor/player initialization.");}
                 else if(state!=null&&waitingForFloor){waitingForFloor=false;Plugin.Report("ASCII resumed after floor initialization.");}
             }
@@ -105,8 +109,8 @@ public sealed class AsciiView : MonoBehaviour
             float left=(Screen.width-cell*frame.Columns)/2f;
             float top=height*.16f+(height*.68f-cell*frame.Rows)/2f;
             var facing=AsciiModel.Facing(frame.FacingX,frame.FacingY);
-            int normalSize=Math.Max(10,(int)(cell*.92f));
-            int facingSize=Math.Max(10,(int)(cell*(facing.Arrow.Length>0?.56f:.92f)));
+            int normalSize=Math.Max(1,(int)(cell*.92f));
+            int facingSize=Math.Max(1,(int)(cell*(facing.Arrow.Length>0?.56f:.92f)));
             if(terrainFontSize!=normalSize){terrainFontSize=normalSize;foreach(var s in terrainStyles!)s.fontSize=normalSize;}
             if(playerFontSize!=facingSize){playerFontSize=facingSize;playerStyle!.fontSize=facingSize;}
             if(!playerText.TryGetValue(facing.Arrow,out string? playerLabel)){playerLabel="@"+facing.Arrow;playerText[facing.Arrow]=playerLabel;}
@@ -115,7 +119,7 @@ public sealed class AsciiView : MonoBehaviour
             {
                 var glyph=frame.Cells[y*frame.Columns+x];
                 if(glyph.Character==' ')continue;
-                bool playerCell=x==frame.Columns/2&&y==frame.Rows/2;
+                bool playerCell=glyph.Character=='@'&&glyph.Palette==3;
                 if(!glyphText.TryGetValue(glyph.Character,out string? text)){text=glyph.Character.ToString();glyphText[glyph.Character]=text;}
                 // Keep both characters inside the player's own cell, so an
                 // adjacent enemy, item or wall never gets covered by the arrow.
@@ -123,7 +127,7 @@ public sealed class AsciiView : MonoBehaviour
             }
             style.normal.textColor=new Color(.65f,.7f,.75f);
             style.fontSize=14;
-            GUI.Label(new Rect(0,height-24,Screen.width,20),"ASCII 0.5.15 | F9: original / text view | F8: capture",style);
+            GUI.Label(new Rect(0,height-24,Screen.width,20),"ASCII 0.5.16 | F9: original / text view | F8: capture",style);
             Performance.Record("mapDraw",renderStart);
             long uiDrawStart=Performance.Mark();
             UiMirror.Draw("向き："+facing.Name+" "+facing.Arrow);

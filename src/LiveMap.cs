@@ -8,7 +8,7 @@ namespace ShirenAsciiProbe;
 internal static class LiveMap
 {
     private static readonly Dictionary<(IntPtr,string),int> offsets=new();
-    internal static MapState? Read(IntPtr dungeon,bool capture=false)
+    internal static MapState? Read(IntPtr dungeon,bool capture=false,bool overview=false)
     {
         // Floor transitions temporarily remove/rebuild these objects. A null
         // result means "wait for the next sample", not an unsupported layout.
@@ -43,8 +43,8 @@ internal static class LiveMap
         var map=new MapTile[width*height];
         Array.Fill(map,new MapTile(0,0));
         var window=AsciiModel.ReadWindow(width,height,px,py);
-        int x0=capture?0:window.Left,y0=capture?0:window.Top;
-        int x1=capture?width-1:window.Right,y1=capture?height-1:window.Bottom;
+        int x0=(capture||overview)?0:window.Left,y0=(capture||overview)?0:window.Top;
+        int x1=(capture||overview)?width-1:window.Right,y1=(capture||overview)?height-1:window.Bottom;
         var grid=Ref(terrain,"egya");
         if(!ReadyArray(grid,height))return null;
         for(int y=y0;y<=y1;y++)
@@ -100,7 +100,7 @@ internal static class LiveMap
                     concealedByWall=(tile.Kind is 2 or 8)&&(e.IsItem||AsciiModel.IsConcealingWall(tile)),drawn=AsciiModel.CanShowEntity(tile,e.IsItem,e.ItemFlags)});
             }
             string path=System.IO.Path.Combine(BepInEx.Paths.BepInExRootPath,"diagnostics","ShirenAsciiProbe","visibility-latest.json");
-            System.IO.File.WriteAllText(path,System.Text.Json.JsonSerializer.Serialize(new{version="0.5.15",roomOuterRing=true,capturedUtc=DateTime.UtcNow,playerX=px,playerY=py,direction,facingX,facingY,facing=AsciiModel.Facing(facingX,facingY).Name,playerRoom=tiles[py*width+px].RoomId,entities=entries}));
+            System.IO.File.WriteAllText(path,System.Text.Json.JsonSerializer.Serialize(new{version="0.5.16",roomOuterRing=true,capturedUtc=DateTime.UtcNow,playerX=px,playerY=py,direction,facingX,facingY,facing=AsciiModel.Facing(facingX,facingY).Name,playerRoom=tiles[py*width+px].RoomId,entities=entries}));
         }
         catch(Exception ex){Plugin.Report("Visibility capture failed: "+ex.Message);}
     }

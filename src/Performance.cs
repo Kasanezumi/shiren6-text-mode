@@ -47,7 +47,7 @@ internal static class Performance
                 metrics[pair.Key]=new {calls=s.Count,averageMs=s.Ticks*factor/Math.Max(1,s.Count),maxMs=s.Max*factor,totalMs=s.Ticks*factor};
             }
             Native.GetWindowThreadProcessId(Native.GetForegroundWindow(),out uint foreground);
-            var sample=new {version="0.5.15",capturedUtc=DateTime.UtcNow,ascii=mode,foreground=foreground==Environment.ProcessId,
+            var sample=new {version="0.5.16",capturedUtc=DateTime.UtcNow,ascii=mode,foreground=foreground==Environment.ProcessId,
                 windowMs=(now-started)*factor,observedUpdateFps=frameTicks==0?0:frames*1000.0/(frameTicks*factor),maxFrameIntervalMs=frameMax*factor,metrics,counts};
             string folder=Path.Combine(BepInEx.Paths.BepInExRootPath,"diagnostics","ShirenAsciiProbe");
             // Aggregate numbers only; no object trees, glyph dumps or map snapshots.
